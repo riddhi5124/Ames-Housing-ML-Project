@@ -115,7 +115,9 @@ if page == "Overview":
     with col_l:
         st.subheader("Price vs Living Area Analysis")
         fig1, ax1 = plt.subplots()
-        sns.scatterplot(data=train_raw, x='Gr Liv Area', y='SalePrice', hue='Neighborhood', legend=False, alpha=0.5, ax=ax1, palette='magma')
+        # Legend enabled and moved to the bottom
+        sns.scatterplot(data=train_raw, x='Gr Liv Area', y='SalePrice', hue='Neighborhood', alpha=0.6, ax=ax1, palette='magma')
+        sns.move_legend(ax1, "upper left", bbox_to_anchor=(0, -0.2), ncol=3, title="Neighborhoods", frameon=False)
         st.pyplot(fig1)
     with col_r:
         st.subheader("Property Value Tiers")
@@ -148,7 +150,7 @@ elif page == "Predictor":
             st.markdown("### Location & Age")
             neighbor_select = st.selectbox("Neighborhood", sorted(train_raw['Neighborhood'].unique()))
             bldg_select = st.selectbox("Building Type", sorted(train_raw['Bldg Type'].unique()))
-            # Year dropdowns
+            # Year dropdowns as requested
             yr_built = st.selectbox("Year Built", sorted(train_raw['Year Built'].unique(), reverse=True))
             yr_remod = st.selectbox("Year Remodeled", sorted(train_raw['Year Remod/Add'].unique(), reverse=True))
 
@@ -171,7 +173,6 @@ elif page == "Predictor":
         submitted = st.form_submit_button("Predict House Price")
 
     if submitted:
-        # Prepare Input Data
         input_vec = train_c.drop('SalePrice', axis=1).median().values.reshape(1, -1)
         input_df = pd.DataFrame(input_vec, columns=train_c.drop('SalePrice', axis=1).columns)
         
@@ -195,7 +196,6 @@ elif page == "Predictor":
         heat_map = {"Excellent": "Ex", "Good": "Gd", "Typical": "TA", "Fair": "Fa", "Poor": "Po"}
         input_df['Heating QC'] = encode_val('Heating QC', heat_map[heat_qual])
 
-        # Inference
         price_pred = reg_models["XGBoost"].predict(input_df)[0]
         prob_pred = clf_models["XGBoost"].predict_proba(input_df)[0][1]
         
@@ -218,4 +218,3 @@ elif page == "Model Analytics":
     sns.barplot(data=melted, x='Model', y='value', hue='variable', palette='viridis', ax=ax)
     plt.ylim(0.7, 1.0)
     st.pyplot(fig)
-    st.info("The XGBoost model demonstrates the most robust performance across both regression and classification tasks.")
