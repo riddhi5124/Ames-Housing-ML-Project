@@ -3,7 +3,25 @@ import pandas as pd
 import joblib
 import numpy as np
 import plotly.express as px # Using Plotly for that "Modern" look
+def engineer_features(df):
+    # Ensure we don't modify the original dataframe
+    data = df.copy()
+    
+    # Total Square Footage
+    data['TotalSF'] = data['Total Bsmt SF'].fillna(0) + data['1st Flr SF'] + data['2nd Flr SF']
+    
+    # Total Bathrooms
+    data['TotalBathrooms'] = (data['Full Bath'] + (0.5 * data['Half Bath']) +
+                              data['Bsmt Full Bath'].fillna(0) + (0.5 * data['Bsmt Half Bath'].fillna(0)))
 
+    # House Age
+    data['HouseAge'] = data['Yr Sold'] - data['Year Built']
+    
+    # Standardize other columns the model expects
+    data['Garage Cars'] = data['Garage Cars'].fillna(0)
+    data['Garage Area'] = data['Garage Area'].fillna(0)
+    
+    return data
 # Setup
 st.set_page_config(page_title="Ames ML Ops Dashboard", layout="wide")
 model = joblib.load('house_price_model.pkl')
@@ -28,6 +46,18 @@ if menu == "Overview":
     st.dataframe(train_df.describe().T.head(10))
 
 # --- TAB 2: VALUATION BOARD (Risk Board style) ---
+elif menu == "Valuation Board":
+    st.title("📋 Property Valuation Board")
+    
+    # Merge and then ENGINEER
+    history = pd.merge(test_df, target_df, on='Order')
+    history_engineered = engineer_features(history) # <--- ADD THIS LINE
+    
+    # Predict using the engineered version
+    history['Prediction'] = np.expm1(model.predict(history_engineered))
+    history['Variance %'] = ((history['Prediction'] - history['SalePrice']) / history['SalePrice']) * 100
+    
+    st.dataframe(history[['Order', 'Neighborhood', 'SalePrice', 'Prediction', 'Variance %']].style.background_gradient(subset=['Variance %'], cmap='RdYlGn'))
 elif menu == "Valuation Board":
     st.title(" Property Valuation Board")
     st.write("Current high-value/at-risk listings based on model variance.")
