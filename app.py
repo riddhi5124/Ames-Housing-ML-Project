@@ -3,8 +3,7 @@ import pandas as pd
 import joblib
 import numpy as np
 
-# 1. Load the model pipeline we created in the training script
-# Make sure the .pkl file is in the same folder as this script!
+
 try:
     model = joblib.load('house_price_model.pkl')
 except:
@@ -15,7 +14,6 @@ st.set_page_config(page_title="Ames House Price Predictor", page_icon="🏡")
 st.title("🏡 Ames Housing Price Predictor")
 st.markdown("Enter the property details below to get an AI-powered valuation.")
 
-# 2. Create the User Input Layout
 col1, col2 = st.columns(2)
 
 with col1:
@@ -27,13 +25,11 @@ with col1:
 
 with col2:
     st.subheader("Location & Amenities")
-    # I've included the most common neighborhoods from the dataset
     nb = st.selectbox("Neighborhood", ['NAmes', 'CollgCr', 'OldTown', 'Edwards', 'Somerst', 'Gilbert', 'NridgHt', 'SawyerW'])
     garage = st.selectbox("Garage Capacity (Cars)", [0, 1, 2, 3, 4])
     bath = st.number_input("Total Bathrooms", 1.0, 6.0, 2.0)
     ac = st.selectbox("Central Air Conditioning", ['Y', 'N'])
 
-# 3. Create a DataFrame from inputs that matches the training columns exactly
 input_data = pd.DataFrame({
     'Overall Qual': [qual], 
     'Gr Liv Area': [liv_area], 
@@ -51,13 +47,9 @@ input_data = pd.DataFrame({
     'Central Air': [ac]
 })
 
-# 4. Prediction Logic
 if st.button("Predict Market Value"):
-    # The pipeline handles scaling and encoding automatically
     log_prediction = model.predict(input_data)
-    
     # We used log1p in training, so we use expm1 to get the actual dollar amount
     final_price = np.expm1(log_prediction)[0]
-    
     st.success(f"### Estimated Price: ${final_price:,.2f}")
     st.balloons()
