@@ -1,10 +1,7 @@
-streamlit>=1.31.0
-altair<5.0.0
+streamlit
 pandas
 numpy
-scikit-learn
-joblib
 matplotlib
 seaborn
-plotly
-statsmodels
+scikit-learn
+xgboost
