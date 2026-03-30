@@ -79,6 +79,39 @@ elif menu == "Predictor":
 # --- TAB 4: MODEL ANALYTICS ---
 elif menu == "Model Analytics":
     st.title("🧪 Model Performance Analytics")
+    
+    # 1. Dynamically get feature names from the pipeline
+    # This avoids the "Length Mismatch" error
+    try:
+        # Get numeric names
+        num_cols = numeric_features 
+        # Get categorical names after One-Hot Encoding
+        cat_cols = model.named_steps['preprocessor'].named_transformers_['cat'].get_feature_names_out(categorical_features)
+        all_feature_names = list(num_cols) + list(cat_cols)
+        
+        # 2. Get Importance scores from the Random Forest
+        importances = model.named_steps['regressor'].feature_importances_
+        
+        # Create the Series with matching lengths
+        feat_importances = pd.Series(importances, index=all_feature_names)
+        top_10 = feat_importances.nlargest(10)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("#### Residual Plot")
+            fig = px.scatter(train_df, x='Gr Liv Area', y='SalePrice', trendline="ols")
+            st.plotly_chart(fig)
+            
+        with col2:
+            st.write("#### Top 10 Drivers of Price")
+            st.bar_chart(top_10)
+            
+    except Exception as e:
+        st.warning("Could not render Feature Importance. Ensure the model pipeline is loaded correctly.")
+        # Fallback: Just show the raw importance values if names fail
+        st.bar_chart(model.named_steps['regressor'].feature_importances_)
+elif menu == "Model Analytics":
+    st.title("🧪 Model Performance Analytics")
     col1, col2 = st.columns(2)
     
     with col1:
