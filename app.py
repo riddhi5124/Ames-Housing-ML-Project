@@ -11,8 +11,8 @@ from sklearn.svm import SVR, SVC
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.metrics import mean_absolute_error, r2_score, precision_score, recall_score, fbeta_score, roc_auc_score
 
-# Set page config
-st.set_page_config(page_title="Ames Housing ML Project", layout="wide")
+# Set page config for a professional look
+st.set_page_config(page_title="Ames Housing Analytics", layout="wide")
 
 # --- DATA LOADING & PREPROCESSING ---
 @st.cache_data
@@ -53,7 +53,7 @@ def train_and_get_metrics(train_df, test_df):
     X_train_s = scaler.fit_transform(X_train)
     X_test_s = scaler.transform(X_test)
 
-    # Note: Reduced n_estimators to 50 for faster deployment stability
+    # Balanced configuration for speed and accuracy
     reg_models = {
         "Linear Regression": LinearRegression().fit(X_train_s, y_train),
         "SVR": SVR(kernel='rbf', C=1e5).fit(X_train_s, y_train),
@@ -90,11 +90,11 @@ def train_and_get_metrics(train_df, test_df):
 reg_models, clf_models, metrics_df, median_price = train_and_get_metrics(train_c, test_c)
 
 # --- NAVIGATION ---
-page = st.sidebar.radio("SML Dashboard", ["Overview", "Feature Selection", "Predictor", "Model Analytics"])
+page = st.sidebar.radio("Navigation", ["Overview", "Feature Selection", "Predictor", "Model Analytics"])
 
 # PAGE 1: OVERVIEW
 if page == "Overview":
-    st.title("🏠 Ames Housing Overview")
+    st.title("Ames Housing Market Overview")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Listings", len(train_raw) + len(test_raw))
     m2.metric("Neighborhoods", train_raw['Neighborhood'].nunique())
@@ -104,103 +104,116 @@ if page == "Overview":
     st.divider()
     col_l, col_r = st.columns(2)
     with col_l:
-        st.subheader("Price vs Living Area (Scatter)")
+        st.subheader("Price vs Living Area Analysis")
         fig1, ax1 = plt.subplots()
-        sns.scatterplot(data=train_raw, x='Gr Liv Area', y='SalePrice', hue='Neighborhood', legend=False, alpha=0.6, ax=ax1)
+        sns.scatterplot(data=train_raw, x='Gr Liv Area', y='SalePrice', hue='Neighborhood', legend=False, alpha=0.5, ax=ax1)
         st.pyplot(fig1)
     with col_r:
-        st.subheader("Market Tier Breakdown (Pie)")
+        st.subheader("Property Value Tiers")
         train_raw['Tier'] = pd.cut(train_raw['SalePrice'], bins=[0, 130000, 215000, np.inf], labels=['Low', 'Medium', 'Premium'])
         fig2, ax2 = plt.subplots()
-        train_raw['Tier'].value_counts().plot.pie(autopct='%1.1f%%', colors=['#ff9999','#66b3ff','#99ff99'], ax=ax2)
+        train_raw['Tier'].value_counts().plot.pie(autopct='%1.1f%%', colors=['#E6E6FA','#B0C4DE','#778899'], ax=ax2)
         ax2.set_ylabel('')
         st.pyplot(fig2)
 
 # PAGE 2: FEATURE SELECTION
 elif page == "Feature Selection":
-    st.title("🎯 Feature Selection Analysis")
+    st.title("Feature Importance & Selection")
+    st.write("Using Random Forest to identify primary price drivers.")
     rf = reg_models["Random Forest"]
     imp = pd.Series(rf.feature_importances_, index=train_c.drop('SalePrice', axis=1).columns).sort_values(ascending=False)
     fig, ax = plt.subplots(figsize=(10, 4))
-    sns.barplot(x=imp.head(10).values, y=imp.head(10).index, palette='magma', ax=ax)
+    sns.barplot(x=imp.head(10).values, y=imp.head(10).index, palette='bone', ax=ax)
     st.pyplot(fig)
+    st.subheader("High-Value Property Data (Top 10 Rows)")
     top_cols = imp.head(5).index.tolist()
     st.dataframe(train_raw[top_cols + ['SalePrice']].sort_values(by='SalePrice', ascending=False).head(10))
 
-# PAGE 3: PREDICTOR (Enhanced with More Features)
+# PAGE 3: PREDICTOR
 elif page == "Predictor":
-    st.title("💰 Comprehensive Price Predictor")
+    st.title("Property Value Estimator")
+    st.write("Complete the form below and click 'Predict' to generate an estimate.")
     
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.subheader("📍 Location & Type")
-        neighbor_select = st.selectbox("Neighborhood", sorted(train_raw['Neighborhood'].unique()))
-        bldg_select = st.selectbox("Building Type", sorted(train_raw['Bldg Type'].unique()))
-        yr_built = st.number_input("Year Built", 1870, 2010, 1995)
-        yr_remod = st.number_input("Year Remodeled", 1950, 2010, 2000)
+    with st.form("price_form"):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("### Location & Age")
+            neighbor_select = st.selectbox("Neighborhood", sorted(train_raw['Neighborhood'].unique()))
+            bldg_select = st.selectbox("Building Type", sorted(train_raw['Bldg Type'].unique()))
+            yr_built = st.number_input("Year Built", 1870, 2010, 1995)
+            yr_remod = st.number_input("Year Remodeled", 1950, 2010, 2000)
 
-    with col2:
-        st.subheader("📏 Size & Quality")
-        q = st.slider("Overall Quality (1-10)", 1, 10, 6)
-        k_qual_map = {"Excellent": "Ex", "Good": "Gd", "Typical/Average": "TA", "Fair": "Fa"}
-        k_qual_select = st.selectbox("Kitchen Quality", list(k_qual_map.keys()))
-        gr_area = st.number_input("Living Area (SqFt)", 400, 5000, 1500)
-        bsmt_area = st.number_input("Basement Area (SqFt)", 0, 3000, 1000)
+        with col2:
+            st.markdown("### Interior & Quality")
+            q = st.slider("Overall Quality Score (1-10)", 1, 10, 6)
+            k_qual_map = {"Excellent": "Ex", "Good": "Gd", "Typical/Average": "TA", "Fair": "Fa"}
+            k_qual_select = st.selectbox("Kitchen Quality", list(k_qual_map.keys()))
+            gr_area = st.number_input("Living Area (SqFt)", 400, 5000, 1500)
+            bsmt_area = st.number_input("Basement Area (SqFt)", 0, 3000, 1000)
 
-    with col3:
-        st.subheader("🚿 Amenities")
-        baths = st.number_input("Full Bathrooms", 1, 4, 2)
-        bedroom = st.number_input("Bedrooms", 1, 6, 3)
-        garage = st.selectbox("Garage Cars", [0, 1, 2, 3, 4])
-        air = st.radio("Central AC", ["Yes", "No"])
+        with col3:
+            st.markdown("### Facilities")
+            baths = st.selectbox("Full Bathrooms", [1, 2, 3, 4], index=1)
+            bedroom = st.selectbox("Total Bedrooms", [1, 2, 3, 4, 5, 6], index=2)
+            garage = st.selectbox("Garage Capacity (Cars)", [0, 1, 2, 3, 4], index=2)
+            air = st.selectbox("Central Air Conditioning", ["Yes", "No"], index=0)
+            # Heating dropdown added as requested
+            heat_qual = st.selectbox("Heating Quality", ["Excellent", "Good", "Typical", "Fair", "Poor"])
 
-    # Processing Input
-    input_vec = train_c.drop('SalePrice', axis=1).median().values.reshape(1, -1)
-    input_df = pd.DataFrame(input_vec, columns=train_c.drop('SalePrice', axis=1).columns)
-    
-    # Map User Selections to Numeric Data
-    input_df['Overall Qual'] = q
-    input_df['Gr Liv Area'] = gr_area
-    input_df['Total Bsmt SF'] = bsmt_area
-    input_df['Year Built'] = yr_built
-    input_df['Year Remod/Add'] = yr_remod
-    input_df['Full Bath'] = baths
-    input_df['Bedroom AbvGr'] = bedroom
-    input_df['Garage Cars'] = garage
-    input_df['Central Air'] = 1 if air == "Yes" else 0
+        # Predict Button at the bottom of the form
+        submitted = st.form_submit_button("Predict House Price")
 
-    # Helper function to match text choice with encoded integer
-    def get_encoded_val(col, val):
-        match = train_c[train_raw[col] == val][col]
-        return match.iloc[0] if not match.empty else 0
+    if submitted:
+        # Preprocessing the input
+        input_vec = train_c.drop('SalePrice', axis=1).median().values.reshape(1, -1)
+        input_df = pd.DataFrame(input_vec, columns=train_c.drop('SalePrice', axis=1).columns)
+        
+        input_df['Overall Qual'] = q
+        input_df['Gr Liv Area'] = gr_area
+        input_df['Total Bsmt SF'] = bsmt_area
+        input_df['Year Built'] = yr_built
+        input_df['Year Remod/Add'] = yr_remod
+        input_df['Full Bath'] = baths
+        input_df['Bedroom AbvGr'] = bedroom
+        input_df['Garage Cars'] = garage
+        input_df['Central Air'] = 1 if air == "Yes" else 0
 
-    input_df['Neighborhood'] = get_encoded_val('Neighborhood', neighbor_select)
-    input_df['Bldg Type'] = get_encoded_val('Bldg Type', bldg_select)
-    input_df['Kitchen Qual'] = get_encoded_val('Kitchen Qual', k_qual_map[k_qual_select])
+        # Encoding function
+        def encode_val(col, val):
+            match = train_c[train_raw[col] == val][col]
+            return match.iloc[0] if not match.empty else 0
 
-    # Predict
-    pred_val = reg_models["XGBoost"].predict(input_df)[0]
-    prob_val = clf_models["XGBoost"].predict_proba(input_df)[0][1]
-    
-    st.divider()
-    res_l, res_r = st.columns(2)
-    with res_l:
-        st.success(f"### Estimated Value: ${pred_val:,.2f}")
-        st.info(f"Price per SqFt: **${(pred_val/gr_area):,.2f}**")
-    with res_r:
-        st.write(f"**Probability of 'Premium' Sale:**")
-        st.subheader(f"{prob_val*100:.1f}%")
-        st.progress(float(prob_val))
+        input_df['Neighborhood'] = encode_val('Neighborhood', neighbor_select)
+        input_df['Bldg Type'] = encode_val('Bldg Type', bldg_select)
+        input_df['Kitchen Qual'] = encode_val('Kitchen Qual', k_qual_map[k_qual_select])
+        
+        # Heating Quality mapping to raw dataset codes (Ex, Gd, TA, Fa, Po)
+        heat_map = {"Excellent": "Ex", "Good": "Gd", "Typical": "TA", "Fair": "Fa", "Poor": "Po"}
+        input_df['Heating QC'] = encode_val('Heating QC', heat_map[heat_qual])
+
+        # Inference
+        price_pred = reg_models["XGBoost"].predict(input_df)[0]
+        prob_pred = clf_models["XGBoost"].predict_proba(input_df)[0][1]
+        
+        st.divider()
+        res_l, res_r = st.columns(2)
+        with res_l:
+            st.subheader(f"Estimated Market Value: ${price_pred:,.2f}")
+            st.write(f"Valuation per SqFt: **${(price_pred/gr_area):,.2f}**")
+        with res_r:
+            st.subheader(f"Premium Probability: {prob_pred*100:.1f}%")
+            st.progress(float(prob_pred))
 
 # PAGE 4: MODEL ANALYTICS
 elif page == "Model Analytics":
-    st.title("📊 Model Analytics")
-    st.dataframe(metrics_df.style.highlight_max(axis=0, subset=['R2', 'AUC', 'F2'], color='lightgreen'))
+    st.title("Model Performance Metrics")
+    st.write("Comparative analysis of different Supervised Learning models.")
+    st.dataframe(metrics_df.style.background_gradient(cmap='Blues', subset=['R2', 'AUC', 'F2']))
     
     fig, ax = plt.subplots()
     melted = metrics_df.melt(id_vars='Model', value_vars=['AUC', 'F2'])
-    sns.barplot(data=melted, x='Model', y='value', hue='variable', ax=ax)
+    sns.barplot(data=melted, x='Model', y='value', hue='variable', palette='viridis', ax=ax)
     plt.ylim(0.7, 1.0)
     st.pyplot(fig)
-    st.info("XGBoost is the winning model for this deployment due to high variance handling.")
+    st.info("XGBoost selected as the primary production model based on F2 performance.")
