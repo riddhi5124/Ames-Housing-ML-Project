@@ -53,3 +53,40 @@ if st.button("Predict Market Value"):
     final_price = np.expm1(log_prediction)[0]
     st.success(f"### Estimated Price: ${final_price:,.2f}")
     st.balloons()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Price Predictor", "Data Visualizations"])
+
+if page == "Price Predictor":
+    st.write("Use the sliders to predict house prices.")
+
+elif page == "Data Visualizations":
+    st.header("📊 Data Insights & Model Performance")
+    
+    train_df = pd.read_csv('train.csv')
+    
+    st.subheader("1. Distribution of House Prices")
+    fig, ax = plt.subplots()
+    sns.histplot(train_df['SalePrice'], kde=True, ax=ax, color='blue')
+    plt.title("Price Distribution (Raw Data)")
+    st.pyplot(fig)
+    st.write("Insight: Notice the 'Right Skew'. This is why we used Log-Transformation in our model.")
+
+    st.subheader("2. Quality vs. Market Value")
+    fig2, ax2 = plt.subplots()
+    sns.boxplot(x='Overall Qual', y='SalePrice', data=train_df, ax=ax2)
+    plt.title("Overall Quality vs Sale Price")
+    st.pyplot(fig2)
+    st.write("Insight: Price increases exponentially as Quality moves from 6 to 10.")
+
+    st.subheader("3. Feature Importance (Correlation)")
+    numeric_df = train_df.select_dtypes(include=[np.number])
+    corr = numeric_df.corr()['SalePrice'].sort_values(ascending=False).head(10)
+    fig3, ax3 = plt.subplots()
+    corr.plot(kind='bar', ax=ax3, color='teal')
+    plt.title("Top 10 Factors Driving Price")
+    st.pyplot(fig3)
