@@ -204,9 +204,7 @@ elif page == "Predictor":
         with res_l:
             st.subheader(f"Estimated Market Value: ${price_pred:,.2f}")
             st.write(f"Valuation per SqFt: **${(price_pred/gr_area):,.2f}**")
-        with res_r:
-            st.subheader(f"Premium Probability: {prob_pred*100:.1f}%")
-            st.progress(float(prob_pred))
+
 
 # PAGE 4: MODEL ANALYTICS
 elif page == "Model Analytics":
