@@ -4,17 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Modeling imports
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.svm import SVR, SVC
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.metrics import mean_absolute_error, r2_score, precision_score, recall_score, fbeta_score, roc_auc_score
-
-# Set page config
 st.set_page_config(page_title="Ames Housing Analytics", layout="wide")
 
-# --- DATA LOADING & PREPROCESSING ---
 @st.cache_data
 def load_and_preprocess():
     train = pd.read_csv('train.csv')
@@ -37,7 +33,6 @@ def load_and_preprocess():
 
 train_raw, test_raw, train_c, test_c = load_and_preprocess()
 
-# --- DYNAMIC MODEL TRAINING ---
 @st.cache_resource
 def train_and_get_metrics(train_df, test_df):
     X_train = train_df.drop('SalePrice', axis=1)
@@ -87,11 +82,7 @@ def train_and_get_metrics(train_df, test_df):
     return reg_models, clf_models, pd.DataFrame(results), median_val
 
 reg_models, clf_models, metrics_df, median_price = train_and_get_metrics(train_c, test_c)
-
-# --- NAVIGATION ---
 page = st.sidebar.radio("Navigation", ["Overview", "Feature Selection", "Predictor", "Model Analytics"])
-
-# PAGE 1: OVERVIEW
 if page == "Overview":
     st.title("Ames Housing Market Overview")
     m1, m2, m3, m4 = st.columns(4)
@@ -115,7 +106,6 @@ if page == "Overview":
     with col_l:
         st.subheader("Price vs Living Area Analysis")
         fig1, ax1 = plt.subplots()
-        # Legend enabled and moved to the bottom
         sns.scatterplot(data=train_raw, x='Gr Liv Area', y='SalePrice', hue='Neighborhood', alpha=0.6, ax=ax1, palette='magma')
         sns.move_legend(ax1, "upper left", bbox_to_anchor=(0, -0.2), ncol=3, title="Neighborhoods", frameon=False)
         st.pyplot(fig1)
@@ -127,7 +117,6 @@ if page == "Overview":
         ax2.set_ylabel('')
         st.pyplot(fig2)
 
-# PAGE 2: FEATURE SELECTION
 elif page == "Feature Selection":
     st.title("Feature Importance & Selection")
     rf = reg_models["Random Forest"]
@@ -139,7 +128,6 @@ elif page == "Feature Selection":
     top_cols = imp.head(5).index.tolist()
     st.dataframe(train_raw[top_cols + ['SalePrice']].sort_values(by='SalePrice', ascending=False).head(10))
 
-# PAGE 3: PREDICTOR
 elif page == "Predictor":
     st.title("Property Value Estimator")
     
@@ -206,7 +194,6 @@ elif page == "Predictor":
             st.write(f"Valuation per SqFt: **${(price_pred/gr_area):,.2f}**")
 
 
-# PAGE 4: MODEL ANALYTICS
 elif page == "Model Analytics":
     st.title("Model Performance Metrics")
     st.dataframe(metrics_df.style.background_gradient(cmap='viridis', subset=['R2', 'AUC', 'F2']))
